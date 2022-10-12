@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 
 
 class TSP:
@@ -11,29 +10,30 @@ class TSP:
     def eval(self, get_total_dist=True):
         if len(np.unique(self.tour)) != len(self.tour):
             return False, 0
-        elif get_total_dist:
-            total = 0
-
-            for i in range(self.n_cities):
-                c1 = self.tour[i]
-                c2 = self.tour[(i + 1) % self.n_cities]
-                total += self.distance[c1, c2]
-
-            return True, total
-        else:
+        elif not get_total_dist:
             return True, 0
 
+        total = 0
+
+        for i in range(self.n_cities):
+            c1 = self.tour[i]
+            c2 = self.tour[(i + 1) % self.n_cities]
+            total += self.distance[c1, c2]
+
+        return True, total
+
     def show_results(self):
-        if self.tour is not None:
+        print('=== TSP ===')
+
+        if self.tour is None:
+            print('No solution found\n')
+        else:
             valid, distance = self.eval()
 
-            print('=== Tour ===')
-            print(f'Valid solution: {valid}')
-
             if valid:
-                print(f'Total distance: {distance:8.2f}')
-
-            print()
+                print(f'Total distance: {distance:,.2f}\n')
+            else:
+                print('Solution invalid\n')
 
 
 class KP:
@@ -47,24 +47,25 @@ class KP:
     def eval(self):
         weight = np.sum(self.weight[self.picked_items])
         
-        if weight <= self.capacity:
-            return True, (weight, np.sum(self.profit[self.picked_items]))
-        else:
+        if weight > self.capacity:
             return False, (0, 0)
 
+        return True, (weight, np.sum(self.profit[self.picked_items]))
+
     def show_results(self):
-        if self.picked_items is not None:
+        print('=== KP ===')
+
+        if self.picked_items is None:
+            print('No solution found\n')
+        else:
             data = np.transpose(np.array([self.profit, self.weight]))
             valid, (weight, profit) = self.eval()
 
-            print('=== Picked items ===')
-            print(f'Valid solution: {valid}')
-
             if valid:
-                print(f'Total profit: {profit:8.2f}')
-                print(f'Total weight: {weight:8.2f}')
-
-            print()
+                print(f'Total profit: {profit:,.2f}')
+                print(f'Total weight: {weight:,.2f}\n')
+            else:
+                print('Solution invalid\n')
 
 
 class TTP:
@@ -78,49 +79,50 @@ class TTP:
         self.picking_plan = None
 
     def eval(self):
-        valid_kp, (weight, profit) = self.kp.eval()
         valid_tsp, _ = self.tsp.eval(get_total_dist=False)
+        valid_kp, (weight, profit) = self.kp.eval()
 
-        if valid_kp and valid_tsp:
-            items_to_pick = dict()
-
-            for item, city in enumerate(self.picking_plan):
-                if city == -1:
-                    continue
-
-                if city in items_to_pick:
-                    items_to_pick[city].append(item)
-                else:
-                    items_to_pick[city] = [item]
-
-            weight = 0
-            time = 0
-
-            for i in range(self.tsp.n_cities):
-                c1 = self.tsp.tour[i]
-                c2 = self.tsp.tour[(i + 1) % self.tsp.n_cities]
-
-                if c1 in items_to_pick:
-                    for item in items_to_pick[c1]:
-                        weight += self.kp.weight[item]
-
-                velocity = self.speed_max - weight * self.speed_factor
-                time += self.tsp.distance[c1, c2] / velocity
-
-            return True, profit - time * self.rent
-        else:
+        if not valid_tsp or not valid_kp:
             return False, 0
+
+        items_to_pick = dict()
+
+        for item, city in enumerate(self.picking_plan):
+            if city == -1:
+                continue
+
+            if city in items_to_pick:
+                items_to_pick[city].append(item)
+            else:
+                items_to_pick[city] = [item]
+
+        weight = 0
+        time = 0
+
+        for i in range(self.tsp.n_cities):
+            c1 = self.tsp.tour[i]
+            c2 = self.tsp.tour[(i + 1) % self.tsp.n_cities]
+
+            if c1 in items_to_pick:
+                for item in items_to_pick[c1]:
+                    weight += self.kp.weight[item]
+
+            velocity = self.speed_max - weight * self.speed_factor
+            time += self.tsp.distance[c1, c2] / velocity
+
+        return True, profit - time * self.rent
 
     def show_results(self):
         valid, profit = self.eval()
 
-        print('=== TTP ===')
-        print(f'Valid solution: {valid}')
+        print('===== TTP =====')
 
         if valid:
-            print(f'Total profit: {profit:8.2f}\n')
+            print(f'Total profit: {profit:,.2f}\n')
             self.tsp.show_results()
             self.kp.show_results()
+        else:
+            print(f'Solutions invalid\n')
 
 
 def load_ttp(filename):
@@ -141,7 +143,7 @@ def load_ttp(filename):
         for i in range(n_cities):
             line = file.readline()
             line = line.split()
-            city_pos[i] = np.array([int(coord) for coord in line[1:]])
+            city_pos[i] = np.array([float(coord) for coord in line[1:]])
 
         _ = file.readline()
 
@@ -160,7 +162,7 @@ def load_ttp(filename):
 
         availability = np.array(availability, dtype=list)
 
-    distance = np.empty([n_cities, n_cities])
+    distance = np.zeros([n_cities, n_cities])
 
     for c1 in range(n_cities):
         for c2 in range(n_cities):
@@ -175,7 +177,7 @@ def load_ttp(filename):
     return TTP(tsp, kp, availability, speed, rent)
 
 
-def example():
+if __name__ == '__main__':
     tsp = TSP(np.array([
         [0, 5, 6, 6],
         [5, 0, 5, 6],
@@ -199,8 +201,3 @@ def example():
     ttp.kp.picked_items = ttp.picking_plan >= 0
 
     ttp.show_results()
-
-
-if __name__ == '__main__':
-    # example()
-    ttp = load_ttp('a280_n279_bounded-strongly-corr_01.ttp')
