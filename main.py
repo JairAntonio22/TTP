@@ -11,7 +11,6 @@ if __name__ == '__main__':
 
     for filename in filenames[:1]:
         ttp = load_ttp(filename)
-        ttp.tsp.tour = np.arange(ttp.tsp.n_cities)
-        ttp.picking_plan = -np.ones(ttp.kp.n_items)
-        ttp.kp.picked_items = ttp.picking_plan >= 0
+
+        ttp.solve('default')
         ttp.show_results()

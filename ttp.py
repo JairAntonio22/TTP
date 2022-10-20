@@ -1,74 +1,21 @@
 import numpy as np
 
-
-class TSP:
-    def __init__(self, distance):
-        self.n_cities = len(distance)
-        self.distance = distance
-        self.tour = None
-
-    def eval(self, get_total_dist=True):
-        if len(np.unique(self.tour)) != len(self.tour):
-            return False, 0
-        elif not get_total_dist:
-            return True, 0
-
-        total = 0
-
-        for i in range(self.n_cities):
-            c1 = self.tour[i]
-            c2 = self.tour[(i + 1) % self.n_cities]
-            total += self.distance[c1, c2]
-
-        return True, total
-
-    def show_results(self):
-        print('=== TSP ===')
-
-        if self.tour is None:
-            print('No solution found\n')
-        else:
-            valid, distance = self.eval()
-
-            if valid:
-                print(f'Total distance: {distance:,.2f}\n')
-            else:
-                print('Solution invalid\n')
+from tsp import TSP
+from kp import KP
 
 
-class KP:
-    def __init__(self, items, capacity):
-        self.n_items = len(items)
-        self.profit = np.array([p for p, _ in items])
-        self.weight = np.array([v for _, v in items])
-        self.capacity = capacity
-        self.picked_items = None
-
-    def eval(self):
-        weight = np.sum(self.weight[self.picked_items])
-        
-        if weight > self.capacity:
-            return False, (0, 0)
-
-        return True, (weight, np.sum(self.profit[self.picked_items]))
-
-    def show_results(self):
-        print('=== KP ===')
-
-        if self.picked_items is None:
-            print('No solution found\n')
-        else:
-            data = np.transpose(np.array([self.profit, self.weight]))
-            valid, (weight, profit) = self.eval()
-
-            if valid:
-                print(f'Total profit: {profit:,.2f}')
-                print(f'Total weight: {weight:,.2f}\n')
-            else:
-                print('Solution invalid\n')
+def get_city_default(ttp, item):
+    for city, available_items in enumerate(ttp.availability):
+        if len(available_items == item) > 0:
+            return city
 
 
 class TTP:
+    get_city = {
+        'default':  get_city_default
+    }
+
+
     def __init__(self, tsp, kp, availability, speed, rent):
         self.tsp = tsp
         self.kp = kp
@@ -76,15 +23,14 @@ class TTP:
         self.speed_max = speed[1]
         self.speed_factor = (speed[1] - speed[0]) / self.kp.capacity
         self.rent = rent
-        self.picking_plan = None
+        self.clear_solution()
+
+
+    def clear_solution(self):
+        self.picking_plan = -np.ones(self.kp.n_items)
+
 
     def eval(self):
-        valid_tsp, _ = self.tsp.eval(get_total_dist=False)
-        valid_kp, (weight, profit) = self.kp.eval()
-
-        if not valid_tsp or not valid_kp:
-            return False, 0
-
         items_to_pick = dict()
 
         for item, city in enumerate(self.picking_plan):
@@ -96,33 +42,53 @@ class TTP:
             else:
                 items_to_pick[city] = [item]
 
+        profit = 0
         weight = 0
         time = 0
 
-        for i in range(self.tsp.n_cities):
-            c1 = self.tsp.tour[i]
-            c2 = self.tsp.tour[(i + 1) % self.tsp.n_cities]
+        edges = np.column_stack((self.tsp.tour, np.roll(self.tsp.tour, -1)))
 
-            if c1 in items_to_pick:
-                for item in items_to_pick[c1]:
-                    weight += self.kp.weight[item]
+        for edge in edges:
+            if edge[0] not in items_to_pick:
+                continue
+
+            for item in items_to_pick[edge[0]]:
+                profit += self.kp.profit[item]
+                weight += self.kp.weight[item]
 
             velocity = self.speed_max - weight * self.speed_factor
-            time += self.tsp.distance[c1, c2] / velocity
+            time += self.tsp.distance[edge[0], edge[1]] / velocity
 
-        return True, profit - time * self.rent
+        return profit - time * self.rent
+
 
     def show_results(self):
-        valid, profit = self.eval()
-
         print('===== TTP =====')
+        print(f'Total profit: {self.eval():,.2f}\n')
 
-        if valid:
-            print(f'Total profit: {profit:,.2f}\n')
-            self.tsp.show_results()
-            self.kp.show_results()
-        else:
-            print(f'Solutions invalid\n')
+        self.tsp.show_results()
+        self.kp.show_results()
+
+
+    def solve(self, heuristic):
+        self.tsp.solve('nearest_neighbor')
+        self.kp.solve('default')
+
+        for item in range(self.kp.n_items):
+            if self.kp.picked_item[item]:
+                self.picking_plan[item] = TTP.get_city[heuristic](self, item)
+
+
+    def solveHH(self, hyperHeuristic):
+        raise Exception("Method not implemented yet.")
+
+
+    def getFeature(self, feature):
+        raise Exception("Method not implemented yet.")
+
+
+    def getObjValue(self):
+        return -self.eval()
 
 
 def load_ttp(filename):
@@ -198,6 +164,6 @@ if __name__ == '__main__':
 
     ttp.tsp.tour = np.array([0, 2, 1, 3])
     ttp.picking_plan = np.array([-1, 2, -1, 1, -1])
-    ttp.kp.picked_items = ttp.picking_plan >= 0
+    ttp.kp.picked_item = ttp.picking_plan >= 0
 
     ttp.show_results()
