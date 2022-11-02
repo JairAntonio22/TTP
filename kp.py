@@ -84,6 +84,8 @@ class KP(Problem):
             self.curr_weight += self.weight[item]
             item = KP.next_item[heuristic](self)
 
+        assert np.sum(self.weight[self.picked_item]) <= self.capacity
+
 
     def solveHH(self, hyperHeuristic):
         raise Exception("Method not implemented yet.")

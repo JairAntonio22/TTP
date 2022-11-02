@@ -1,5 +1,6 @@
 import numpy as np
 
+from pyhermes import Problem
 from tsp import TSP
 from kp import KP
 
@@ -10,7 +11,7 @@ def get_city_default(ttp, item):
             return city
 
 
-class TTP:
+class TTP(Problem):
     get_city = {
         'default':  get_city_default
     }
@@ -42,10 +43,7 @@ class TTP:
             else:
                 items_to_pick[city] = [item]
 
-        profit = 0
-        weight = 0
-        time = 0
-
+        profit, weight, time = 0, 0, 0
         edges = np.column_stack((self.tsp.tour, np.roll(self.tsp.tour, -1)))
 
         for edge in edges:
@@ -72,7 +70,7 @@ class TTP:
 
     def solve(self, heuristic):
         self.tsp.solve('nearest_neighbor')
-        self.kp.solve('default')
+        self.kp.solve('max_density')
 
         for item in range(self.kp.n_items):
             if self.kp.picked_item[item]:

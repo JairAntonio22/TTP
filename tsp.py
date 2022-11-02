@@ -31,7 +31,7 @@ def solver_nearest_neighbor(tsp):
 
 class TSP(Problem):
     solver = {
-        'nearest_neighbor'  : solver_nearest_neighbor,
+        'nearest_neighbor': solver_nearest_neighbor,
     }
 
 
@@ -63,6 +63,8 @@ class TSP(Problem):
 
     def solve(self, heuristic):
         TSP.solver[heuristic](self)
+
+        assert len(np.unique(self.tour)) == len(self.tour)
 
 
     def solveHH(self, hyperHeuristic):
