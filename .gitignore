@@ -1,4 +1,7 @@
 
 .DS_Store
-TTP Instances/*
+*.ttp
+*.tour
+*.tsp
+*.csv
 *.pyc
