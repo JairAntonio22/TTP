@@ -6,14 +6,37 @@ from kp import KP
 
 
 def get_city_default(ttp, item):
-    for city, available_items in enumerate(ttp.availability):
-        if len(available_items == item) > 0:
+    for city in range(ttp.tsp.n_cities):
+        p = (item, city)
+
+        if item in ttp.availability[city] and p not in ttp.picked:
+            ttp.picked.add(p)
+            return city
+
+
+def get_city_closest(ttp, item):
+    for city in ttp.tsp.tour:
+        p = (item, city)
+
+        if item in ttp.availability[city] and p not in ttp.picked:
+            ttp.picked.add(p)
+            return city
+
+
+def get_city_farthest(ttp, item):
+    for city in ttp.tsp.tour[::-1]:
+        p = (item, city)
+
+        if item in ttp.availability[city] and p not in ttp.picked:
+            ttp.picked.add(p)
             return city
 
 
 class TTP(Problem):
     get_city = {
-        'default':  get_city_default
+        'default':  get_city_default,
+        'closest':  get_city_closest,
+        'farthest': get_city_farthest
     }
 
 
@@ -29,6 +52,7 @@ class TTP(Problem):
 
     def clear_solution(self):
         self.picking_plan = -np.ones(self.kp.n_items)
+        self.picked = set()
 
 
     def eval(self):
@@ -68,13 +92,15 @@ class TTP(Problem):
         self.kp.show_results()
 
 
-    def solve(self, heuristic):
-        self.tsp.solve('nearest_neighbor')
-        self.kp.solve('max_density')
+    def solve(self, heuristics):
+        h1, h2, h3 = heuristics.split('/')
+
+        self.tsp.solve(h2)
+        self.kp.solve(h3)
 
         for item in range(self.kp.n_items):
             if self.kp.picked_item[item]:
-                self.picking_plan[item] = TTP.get_city[heuristic](self, item)
+                self.picking_plan[item] = TTP.get_city[h1](self, item)
 
 
     def solveHH(self, hyperHeuristic):
