@@ -5,7 +5,7 @@ from tsp import TSP
 from kp import KP
 
 
-def get_city_default(ttp, item):
+def next_city_default(ttp, item):
     for city in range(ttp.tsp.n_cities):
         p = (item, city)
 
@@ -14,7 +14,7 @@ def get_city_default(ttp, item):
             return city
 
 
-def get_city_closest(ttp, item):
+def next_city_closest(ttp, item):
     for city in ttp.tsp.tour:
         p = (item, city)
 
@@ -23,7 +23,7 @@ def get_city_closest(ttp, item):
             return city
 
 
-def get_city_farthest(ttp, item):
+def next_city_farthest(ttp, item):
     for city in ttp.tsp.tour[::-1]:
         p = (item, city)
 
@@ -32,11 +32,19 @@ def get_city_farthest(ttp, item):
             return city
 
 
+def next_city_item_default(ttp):
+    pass
+
+
 class TTP(Problem):
-    get_city = {
-        'default':  get_city_default,
-        'closest':  get_city_closest,
-        'farthest': get_city_farthest
+    next_city = {
+        'default':  next_city_default,
+        'closest':  next_city_closest,
+        'farthest': next_city_farthest
+    }
+
+    next_city_item = {
+        'default':  next_city_item_default,
     }
 
 
@@ -100,7 +108,7 @@ class TTP(Problem):
 
         for item in range(self.kp.n_items):
             if self.kp.picked_item[item]:
-                self.picking_plan[item] = TTP.get_city[h1](self, item)
+                self.picking_plan[item] = TTP.next_city[h1](self, item)
 
 
     def solveHH(self, hyperHeuristic):
@@ -156,9 +164,7 @@ def load_ttp(filename):
 
     for c1 in range(n_cities):
         for c2 in range(n_cities):
-            c1_pos = city_pos[c1]
-            c2_pos = city_pos[c2]
-            distance[c1][c2] = np.linalg.norm(c1_pos - c2_pos)
+            distance[c1][c2] = np.linalg.norm(city_pos[c1] - city_pos[c2])
 
     tsp = TSP(distance)
     kp = KP(items, capacity)

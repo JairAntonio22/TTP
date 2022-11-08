@@ -3,7 +3,7 @@ import numpy as np
 from pyhermes import Problem
 
 
-def solver_nearest_neighbor(tsp):
+def next_city_nearest_neighbor(tsp):
     cities = np.arange(tsp.n_cities)
     visited = np.array([False] * tsp.n_cities)
     last_city = 0
@@ -30,8 +30,8 @@ def solver_nearest_neighbor(tsp):
 
 
 class TSP(Problem):
-    solver = {
-        'nearest_neighbor': solver_nearest_neighbor,
+    next_city = {
+        'nearest_neighbor': next_city_nearest_neighbor,
     }
 
 
@@ -62,7 +62,7 @@ class TSP(Problem):
 
 
     def solve(self, heuristic):
-        TSP.solver[heuristic](self)
+        TSP.next_city[heuristic](self)
 
         assert len(np.unique(self.tour)) == len(self.tour)
 
