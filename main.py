@@ -30,7 +30,7 @@ def run_test(ttp_h, tsp_h, kp_h):
 dataset = pd.read_csv('instance_results.csv', index_col='instance')
 
 ttp_heuristics = ['default', 'closest', 'farthest']
-tsp_heuristics = ['nearest_neighbor']
+tsp_heuristics = ['default', 'nearest_neighbor', 'greedy']
 kp_heuristics = ['default', 'max_profit', 'max_density', 'min_weight']
 
 for ttp_h in ttp_heuristics:
