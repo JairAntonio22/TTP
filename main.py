@@ -8,6 +8,7 @@ from tabulate import tabulate
 
 def run_test(ttp_h, tsp_h, kp_h):
     error = []
+    tested_instances = 0
 
     for instance, (_, _, best) in dataset.iterrows():
         ttp = load_ttp('instances/' + instance)
@@ -16,6 +17,7 @@ def run_test(ttp_h, tsp_h, kp_h):
 
         if score <= best:
             error.append(100 * np.abs(score - best) / best)
+            tested_instances += 1
 
     error = np.array(error)
     mean = np.mean(error)
@@ -24,6 +26,7 @@ def run_test(ttp_h, tsp_h, kp_h):
     print(tabulate([
         ['ttp', ttp_h], ['tsp', tsp_h], ['kp', kp_h],
         ['error mean', '%.2f%%' % mean], ['error std', '%.2f%%' % std],
+        ['tested instances', tested_instances],
     ], tablefmt='simple_grid'))
 
 
