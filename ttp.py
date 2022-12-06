@@ -7,33 +7,30 @@ from kp import KP
 
 def next_city_default(ttp, item):
     for city in range(ttp.tsp.n_cities):
-        p = (item, city)
-
-        if item in ttp.availability[city] and p not in ttp.picked:
-            ttp.picked.add(p)
+        if item in ttp.availability[city]:
             return city
 
 
 def next_city_closest(ttp, item):
     for city in ttp.tsp.tour:
-        p = (item, city)
-
-        if item in ttp.availability[city] and p not in ttp.picked:
-            ttp.picked.add(p)
+        if item in ttp.availability[city]:
             return city
 
 
 def next_city_farthest(ttp, item):
     for city in ttp.tsp.tour[::-1]:
-        p = (item, city)
-
-        if item in ttp.availability[city] and p not in ttp.picked:
-            ttp.picked.add(p)
+        if item in ttp.availability[city]:
             return city
 
 
 def next_city_item_default(ttp):
-    pass
+    for city in ttp.tsp.n_cities:
+        if city in tsp.visited:
+            continue
+
+        for item in ttp.availability[city]:
+            if ttp.kp.curr_weight + ttp.kp.weight[item] < ttp.kp.capacity:
+                return city, item
 
 
 class TTP(Problem):
@@ -52,6 +49,7 @@ class TTP(Problem):
         self.tsp = tsp
         self.kp = kp
         self.availability = availability
+        self.speed_min = speed[0]
         self.speed_max = speed[1]
         self.speed_factor = (speed[1] - speed[0]) / self.kp.capacity
         self.rent = rent
@@ -60,7 +58,6 @@ class TTP(Problem):
 
     def clear_solution(self):
         self.picking_plan = -np.ones(self.kp.n_items)
-        self.picked = set()
 
 
     def eval(self):
@@ -101,22 +98,34 @@ class TTP(Problem):
 
 
     def solve(self, heuristics):
-        h1, h2, h3 = heuristics.split('/')
+        heuristics = heuristics.split('/') 
 
-        self.tsp.solve(h2)
-        self.kp.solve(h3)
+        if len(heuristics) == 1:
+            h1 = heuristics[0]
 
-        for item in range(self.kp.n_items):
-            if self.kp.picked_item[item]:
+            for item in range(self.kp.n_items):
                 self.picking_plan[item] = TTP.next_city[h1](self, item)
+
+        elif len(heuristics) == 3:
+            h1, h2, h3 = heuristics
+
+            self.tsp.solve(h2)
+            self.kp.solve(h3)
+
+            for item in range(self.kp.n_items):
+                if self.kp.picked_item[item]:
+                    self.picking_plan[item] = TTP.next_city[h1](self, item)
+
+        else:
+            raise Exception('')
 
 
     def solveHH(self, hyperHeuristic):
-        raise Exception("Method not implemented yet.")
+        raise Exception('Method not implemented yet.')
 
 
     def getFeature(self, feature):
-        raise Exception("Method not implemented yet.")
+        raise Exception('Method not implemented yet.')
 
 
     def getObjValue(self):
